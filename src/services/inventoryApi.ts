@@ -3,8 +3,30 @@ import { apiClient } from './apiClient';
 
 export class InventoryApiService {
   async healthCheck() {
-    const response = await apiClient.healthCheck();
-    return response;
+    try {
+      const response = await apiClient.healthCheck();
+      console.log('🩺 Health check response:', response);
+      
+      // Backend returns {status: "OK", timestamp: "...", uptime: ..., version: "..."} 
+      // ApiClient wraps it in ApiResponse format
+      const isHealthy = response && (
+        response.success === true || 
+        (response as any).status === 'OK'
+      );
+      
+      return {
+        success: isHealthy,
+        data: response,
+        message: isHealthy ? 'Backend is healthy' : 'Backend health check failed'
+      };
+    } catch (error) {
+      console.error('❌ Health check failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Health check failed',
+        message: 'Cannot connect to backend'
+      };
+    }
   }
 
   async getProducts(params?: any) {

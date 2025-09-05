@@ -10,11 +10,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
-import { useApi } from '@/contexts/ApiContext';
+import { useApp } from '@/contexts/AppContext';
 import { format } from 'date-fns';
 
 const SyncStatusIndicator = () => {
-  const { isConfigured, isOnline } = useApi();
+  const { isConfigured, isOnline } = useApp();
   const { syncStatus, lastSyncTime, errorCount, manualSync, isRealTimeEnabled } = useRealTimeSync();
 
   const getStatusIcon = () => {
