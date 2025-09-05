@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { StockAlert } from '@/types/stock-movement';
 import { stockMovementApi } from '@/services/stockMovementApi';
 import { useToast } from '@/hooks/use-toast';
-import { useApi } from '@/contexts/ApiContext';
+import { useApp } from '@/contexts/AppContext';
 
 export const useStockAlerts = () => {
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { isConfigured, isOnline } = useApi();
+  const { config } = useApp();
+  const isConfigured = config.apiEnabled;
+  const isOnline = config.apiEnabled;
 
   const fetchAlerts = useCallback(async () => {
     if (!isConfigured || !isOnline) {
@@ -37,8 +39,19 @@ export const useStockAlerts = () => {
   }, [fetchAlerts]);
 
   const acknowledgeAlert = useCallback(async (alertId: string, acknowledgedBy: string) => {
+    if (!isConfigured || !isOnline) {
+      toast({
+        title: "API Not Available",
+        description: "Cannot acknowledge alert - API connection required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      const updatedAlert = await stockMovementApi.acknowledgeStockAlert(alertId);
+      
       setAlerts(prev => prev.map(alert => 
         alert.id === alertId 
           ? {
@@ -63,7 +76,7 @@ export const useStockAlerts = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [isConfigured, isOnline, toast]);
 
   const createAlert = useCallback(async (alert: Omit<StockAlert, 'id' | 'timestamp'>) => {
     setLoading(true);
@@ -122,6 +135,21 @@ export const useStockAlerts = () => {
     };
   }, [alerts, getUnacknowledgedAlerts, getCriticalAlerts, getAlertsBySeverity]);
 
+  // Get API-based alert stats when available
+  const getApiAlertStats = useCallback(async () => {
+    if (!isConfigured || !isOnline) {
+      return getAlertStats();
+    }
+
+    try {
+      const apiStats = await stockMovementApi.getAlertStats();
+      return apiStats.overview || getAlertStats();
+    } catch (error) {
+      console.error('Failed to fetch API alert stats:', error);
+      return getAlertStats();
+    }
+  }, [isConfigured, isOnline, getAlertStats]);
+
   // Auto-generate alerts based on stock levels (simulation)
   useEffect(() => {
     const checkStockLevels = () => {
@@ -142,5 +170,6 @@ export const useStockAlerts = () => {
     getAlertsBySeverity,
     getCriticalAlerts,
     getAlertStats,
+    getApiAlertStats,
   };
 };

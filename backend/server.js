@@ -15,6 +15,7 @@ const analyticsRoutes = require("./routes/analytics");
 const reportRoutes = require("./routes/reports");
 const apiKeyRoutes = require("./routes/apiKeys");
 const aiRoutes = require("./routes/ai");
+const alertRoutes = require("./routes/alerts");
 const externalRoutes = require("./routes/external");
 
 const errorHandler = require("./middleware/errorHandler");
@@ -85,6 +86,7 @@ app.use("/api/users", adminAuth, userRoutes); // Users need admin access
 app.use("/api/analytics", auth, analyticsRoutes);
 app.use("/api/reports", auth, reportRoutes);
 app.use("/api/ai", auth, aiRoutes);
+app.use("/api/alerts", auth, alertRoutes);
 
 // Admin routes - require API key for external admin access
 app.use(

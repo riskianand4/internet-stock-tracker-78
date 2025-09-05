@@ -16,32 +16,4 @@ export const DUMMY_PRODUCTS = [
   { id: '5', name: 'Product E', category: 'Furniture', price: 750000, stock: 240 },
 ];
 
-export const STOCK_ALERTS = [
-  { 
-    id: '1', 
-    type: 'critical', 
-    message: 'Product A stock is critically low', 
-    priority: 'high',
-    actionRequired: true,
-    product: { name: 'Product A', sku: 'PA001' },
-    timestamp: new Date().toISOString()
-  },
-  { 
-    id: '2', 
-    type: 'warning', 
-    message: 'Product B is out of stock', 
-    priority: 'critical',
-    actionRequired: true,
-    product: { name: 'Product B', sku: 'PB002' },
-    timestamp: new Date().toISOString()
-  },
-  { 
-    id: '3', 
-    type: 'info', 
-    message: 'Time to reorder Product C', 
-    priority: 'medium',
-    actionRequired: false,
-    product: { name: 'Product C', sku: 'PC003' },
-    timestamp: new Date().toISOString()
-  },
-];
+// STOCK_ALERTS removed - now fetched from API via useStockAlerts hook

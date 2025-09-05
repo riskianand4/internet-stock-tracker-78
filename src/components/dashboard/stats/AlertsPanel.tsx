@@ -6,16 +6,29 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
-import { STOCK_ALERTS } from '@/data/constants';
+import { useStockAlerts } from '@/hooks/useStockAlerts';
 
 const AlertsPanel = () => {
-  const [alerts, setAlerts] = useState(STOCK_ALERTS);
+  const { alerts: stockAlerts } = useStockAlerts();
+  const [alerts, setAlerts] = useState(stockAlerts);
   const [filterType, setFilterType] = useState<string>('all');
   const [isExpanded, setIsExpanded] = useState(true);
 
+  // Convert stock alerts to the expected format
+  const convertedAlerts = stockAlerts.map(alert => ({
+    id: alert.id,
+    type: alert.severity === 'CRITICAL' ? 'critical' : 
+          alert.severity === 'HIGH' ? 'warning' : 'info',
+    message: alert.message,
+    priority: alert.severity.toLowerCase(),
+    actionRequired: !alert.acknowledged,
+    product: { name: alert.productName, sku: alert.productCode },
+    timestamp: alert.timestamp
+  }));
+
   const filteredAlerts = filterType === 'all' 
-    ? alerts 
-    : alerts.filter(alert => alert.type === filterType);
+    ? convertedAlerts 
+    : convertedAlerts.filter(alert => alert.type === filterType);
 
   const dismissAlert = (id: string) => {
     setAlerts(prev => prev.filter(alert => alert.id !== id));
@@ -40,12 +53,12 @@ const AlertsPanel = () => {
   };
 
   const priorityCounts = {
-    critical: alerts.filter(a => a.type === 'critical').length,
-    warning: alerts.filter(a => a.type === 'warning').length,
-    info: alerts.filter(a => a.type === 'info').length,
+    critical: convertedAlerts.filter(a => a.type === 'critical').length,
+    warning: convertedAlerts.filter(a => a.type === 'warning').length,
+    info: convertedAlerts.filter(a => a.type === 'info').length,
   };
 
-  if (alerts.length === 0) {
+  if (convertedAlerts.length === 0) {
     return (
       <Card className="glass border-success/20">
         <CardContent className="p-6 text-center">
@@ -65,9 +78,9 @@ const AlertsPanel = () => {
             <CardTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-warning" />
               System Alerts
-              {alerts.length > 0 && (
+              {convertedAlerts.length > 0 && (
                 <Badge variant="destructive" className="text-xs">
-                  {alerts.length}
+                  {convertedAlerts.length}
                 </Badge>
               )}
             </CardTitle>

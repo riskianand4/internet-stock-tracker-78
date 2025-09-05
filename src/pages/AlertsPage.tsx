@@ -18,63 +18,32 @@ import {
   BellOff, Eye, Edit, Trash2, Filter, Settings, CheckCircle, Clock
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { ErrorBoundary } from '@/components/feedback/ErrorBoundary';
-
-// Mock system alerts data
-const mockSystemAlerts = [
-  {
-    id: 'sys-1',
-    type: 'system',
-    severity: 'high',
-    title: 'Database Connection Issue',
-    message: 'Database connection pool approaching maximum capacity',
-    timestamp: new Date('2024-01-18T14:30:00'),
-    isRead: false,
-    isResolved: false,
-    category: 'system_health'
-  },
-  {
-    id: 'sys-2',
-    type: 'security',
-    severity: 'critical',
-    title: 'Multiple Failed Login Attempts',
-    message: 'User admin@telnet.co.id has 5 failed login attempts in the last 10 minutes',
-    timestamp: new Date('2024-01-18T13:45:00'),
-    isRead: true,
-    isResolved: false,
-    category: 'security'
-  },
-  {
-    id: 'sys-3',
-    type: 'performance',
-    severity: 'medium',
-    title: 'API Response Time Degradation',
-    message: 'Average API response time has increased by 40% in the last hour',
-    timestamp: new Date('2024-01-18T12:20:00'),
-    isRead: true,
-    isResolved: true,
-    category: 'performance'
-  }
-];
+import AutomatedStockAlerts from '@/components/alerts/AutomatedStockAlerts';
 
 export default function AlertsPage() {
   const { user, isAuthenticated } = useApp();
+  const { alerts: stockAlerts } = useStockAlerts();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
 
-  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
-  const [notificationSettings, setNotificationSettings] = useState<any[]>([]);
-
+  // Convert stock alerts to the expected format and add system alerts
   const allAlerts = [
     ...stockAlerts.map(alert => ({
-      ...alert,
+      id: alert.id,
+      type: alert.type.toLowerCase(),
+      severity: alert.severity.toLowerCase(),
       title: `Stock Alert: ${alert.productName}`,
-      timestamp: alert.date,
+      message: alert.message,
+      timestamp: new Date(alert.timestamp),
+      isRead: alert.acknowledged,
+      isResolved: false,
       category: 'inventory'
     })),
-    ...mockSystemAlerts
+    // System alerts can be added here when backend supports them
   ];
 
   const filteredAlerts = allAlerts.filter(alert => {
@@ -313,6 +282,8 @@ export default function AlertsPage() {
             </TabsList>
 
             <TabsContent value="alerts" className="space-y-4">
+              <AutomatedStockAlerts />
+              
               <Card>
                 <CardHeader>
                   <CardTitle>Daftar Alert</CardTitle>
@@ -399,11 +370,11 @@ export default function AlertsPage() {
                                   variant="ghost" 
                                   size="sm"
                                   onClick={() => {
-                                    console.log('Edit/resolve alert:', alert);
-                                    // Open edit/resolve dialog
+                                    console.log('Resolve alert:', alert);
+                                    // Mark alert as resolved
                                   }}
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  <CheckCircle className="w-4 h-4 text-success" />
                                 </Button>
                               )}
                             </div>
@@ -420,57 +391,22 @@ export default function AlertsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Pengaturan Notifikasi</CardTitle>
-                  <CardDescription>Konfigurasi preferensi notifikasi</CardDescription>
+                  <CardDescription>
+                    Atur preferensi notifikasi untuk berbagai jenis alert
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead>Tipe</TableHead>
-                        <TableHead>Frekuensi</TableHead>
-                        <TableHead>Threshold</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Aksi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {notificationSettings.map((setting) => (
-                        <TableRow key={setting.id}>
-                          <TableCell className="capitalize font-medium">
-                            {setting.category.replace('_', ' ')}
-                          </TableCell>
-                          <TableCell className="capitalize">
-                            <Badge variant="outline">
-                              {setting.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="capitalize">{setting.frequency}</TableCell>
-                          <TableCell>{setting.threshold || '-'}</TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={setting.enabled}
-                              disabled={user?.role === 'user'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {(user?.role === 'admin' || user?.role === 'super_admin') && (
-                              <Button variant="ghost" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Pengaturan notifikasi akan tersedia setelah backend notification system diimplementasikan</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
       </div>
-    </MainLayout>
+      </MainLayout>
     </ErrorBoundary>
   );
 }
