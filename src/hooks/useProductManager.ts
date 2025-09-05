@@ -33,12 +33,33 @@ export const useProductManager = () => {
   } = useHybridData<Product[]>({
     localData: [],
     localFunction: () => {
+      console.log('📂 Loading products from localStorage');
       const saved = localStorage.getItem('products');
-      return saved ? JSON.parse(saved) : [];
+      const result = saved ? JSON.parse(saved) : [];
+      console.log('📦 LocalStorage products:', result);
+      return result;
     },
     apiFunction: async () => {
-      if (!apiService) throw new Error('API service not available');
-      return await apiService.getProducts();
+      console.log('🔄 useProductManager: Calling API for products');
+      if (!apiService) {
+        console.error('❌ API service not available');
+        throw new Error('API service not available');
+      }
+      
+      const response = await apiService.getProducts();
+      console.log('📦 API Response in useProductManager:', response);
+      
+      // Handle the standardized response format
+      if (response && response.success && response.data) {
+        return response.data;
+      }
+      
+      // Fallback for direct array responses
+      if (Array.isArray(response)) {
+        return response;
+      }
+      
+      throw new Error('Invalid products response format');
     },
     autoRefresh: true,
   });

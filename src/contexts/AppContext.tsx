@@ -86,10 +86,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   // Sync auth token with API service whenever auth state changes
   useEffect(() => {
     const token = localStorage.getItem('auth-token');
+    console.log('🔑 Token sync:', { 
+      hasToken: !!token, 
+      isAuthenticated: authManager.isAuthenticated,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+    });
+    
     if (token && authManager.isAuthenticated) {
       apiService.setToken(token);
+      console.log('✅ Token set in API service');
     } else {
       apiService.setToken(null);
+      console.log('❌ Token cleared from API service');
     }
   }, [authManager.isAuthenticated, apiService]);
 

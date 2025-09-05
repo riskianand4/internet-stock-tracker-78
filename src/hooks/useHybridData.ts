@@ -49,30 +49,55 @@ export function useHybridData<T>({
     setIsLoading(true);
     setError(null);
 
+    console.log('🔄 useHybridData loadData called:', { 
+      isConfigured, 
+      isOnline, 
+      hasApiService: !!apiService,
+      hasApiFunction: !!apiFunction,
+      apiEndpoint,
+      isRetry
+    });
+
     try {
       // Use API if configured and online
       if (isConfigured && isOnline && apiService) {
+        console.log('📡 Using API data source');
         let response;
         
         if (apiFunction) {
+          console.log('🎯 Calling apiFunction');
           response = await apiFunction();
         } else if (apiEndpoint) {
+          console.log('🎯 Calling apiService.request with endpoint:', apiEndpoint);
           response = await apiService.request(apiEndpoint);
         } else {
           throw new Error('No API function or endpoint provided');
         }
         
-        if (response?.success && response.data !== undefined) {
+        console.log('📦 API Response received:', response);
+        
+        // Handle both direct data arrays and wrapped responses
+        if (response && response.success && response.data !== undefined) {
+          console.log('✅ Using response.data:', response.data);
           setData(response.data);
           setIsFromApi(true);
           setLastUpdated(new Date());
           retryCount.current = 0; // Reset retry count on success
+        } else if (Array.isArray(response)) {
+          // Handle direct array responses (legacy compatibility)
+          console.log('✅ Using direct array response:', response);
+          setData(response as T);
+          setIsFromApi(true);
+          setLastUpdated(new Date());
+          retryCount.current = 0;
         } else {
           throw new Error(response?.error || response?.message || 'API request failed');
         }
       } else {
+        console.log('💾 Using local data source');
         // Fallback to local data
         const result = localFunction ? localFunction() : localData;
+        console.log('📂 Local data result:', result);
         setData(result);
         setIsFromApi(false);
         setLastUpdated(new Date());

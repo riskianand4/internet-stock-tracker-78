@@ -9,39 +9,65 @@ export class InventoryApiService {
 
   async getProducts(params?: any) {
     const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
-    const response = await apiClient.get(`/api/products${queryString}`);
     
-    // Backend returns { success: true, data: [...], pagination: {...} }
-    // Transform backend data format to frontend format
-    if (response.success && response.data && Array.isArray(response.data)) {
-      const products = (response.data as any[]).map((product: any) => ({
-        id: product.id || product._id,
-        name: product.name,
-        sku: product.sku,
-        productCode: product.sku, // Use SKU as product code
-        category: product.category,
-        price: product.price,
-        stock: product.stock?.current || product.stock || 0,
-        minStock: product.stock?.minimum || product.minStock || 0,
-        maxStock: product.stock?.maximum || product.maxStock || 0,
-        status: product.stockStatus || product.status,
-        description: product.description || '',
-        location: product.location?.warehouse || product.location || '',
-        supplier: product.supplier?.name || product.supplier || '',
-        unit: product.unit || 'pcs',
-        barcode: product.barcode || '',
-        tags: product.tags || [],
-        costPrice: product.costPrice || 0,
-        profitMargin: product.profitMargin || 0,
-        images: product.images || [],
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-      }));
+    console.log('🔄 Fetching products from API:', `/api/products${queryString}`);
+    
+    try {
+      const response = await apiClient.get(`/api/products${queryString}`);
+      console.log('📦 Raw API response:', response);
       
-      return products;
+      // Backend returns { success: true, data: [...], pagination: {...} }
+      if (response && response.success && response.data && Array.isArray(response.data)) {
+        console.log('✅ Processing', response.data.length, 'products from API');
+        
+        const products = (response.data as any[]).map((product: any) => ({
+          id: product.id || product._id,
+          name: product.name,
+          sku: product.sku,
+          productCode: product.sku, // Use SKU as product code
+          category: product.category,
+          price: product.price,
+          stock: product.stock?.current || product.stock || 0,
+          minStock: product.stock?.minimum || product.minStock || 0,
+          maxStock: product.stock?.maximum || product.maxStock || 0,
+          status: product.stockStatus || product.status || 'active',
+          description: product.description || '',
+          location: product.location?.warehouse || product.location || '',
+          supplier: product.supplier?.name || product.supplier || '',
+          unit: product.unit || 'pcs',
+          barcode: product.barcode || '',
+          tags: product.tags || [],
+          costPrice: product.costPrice || 0,
+          profitMargin: product.profitMargin || 0,
+          images: product.images || [],
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        }));
+        
+        console.log('🎯 Transformed products:', products);
+        
+        return {
+          success: true,
+          data: products,
+          pagination: (response as any).pagination
+        };
+      }
+      
+      console.warn('⚠️ Unexpected response format:', response);
+      return {
+        success: false,
+        data: [],
+        error: 'Invalid response format'
+      };
+      
+    } catch (error) {
+      console.error('❌ Error fetching products:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Failed to fetch products'
+      };
     }
-    
-    return response;
   }
 
   async createProduct(data: any) {
