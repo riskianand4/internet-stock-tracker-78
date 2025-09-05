@@ -44,6 +44,11 @@ const AssetsPage = () => {
     fetchAssets
   } = useEnhancedAssetManager();
 
+  // Load assets on initial mount
+  React.useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
   // Calculate stats from assets
   const stats = React.useMemo(() => {
     const totalAssets = assets.length;

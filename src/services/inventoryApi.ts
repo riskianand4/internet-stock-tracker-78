@@ -137,6 +137,23 @@ export class InventoryApiService {
   getToken() {
     return apiClient.getToken();
   }
+
+  // Generic request methods for compatibility across hooks/services
+  async request(endpoint: string) {
+    return apiClient.get(endpoint);
+  }
+  async get(endpoint: string) {
+    return apiClient.get(endpoint);
+  }
+  async post(endpoint: string, data?: any) {
+    return apiClient.post(endpoint, data);
+  }
+  async put(endpoint: string, data?: any) {
+    return apiClient.put(endpoint, data);
+  }
+  async delete(endpoint: string) {
+    return apiClient.delete(endpoint);
+  }
 }
 
 export const initializeApiService = () => new InventoryApiService();
