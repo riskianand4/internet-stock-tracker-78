@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import AddProductDialog from '@/components/products/AddProductDialog';
+import { useSystemMenuData } from '@/hooks/useSystemMenuData';
 import { Package, BarChart3, Plus, Wifi, Home, TrendingUp, HardDrive, Users, Shield, Settings, Database, AlertTriangle, FileText, Monitor, Key } from 'lucide-react';
 
 // Main navigation items - core features
@@ -42,52 +43,73 @@ const mainMenuItems = [{
   description: "Reports and data insights"
 }];
 
-// Admin navigation items - management features
-const adminMenuItems = [{
+// Admin navigation items - management features (will be dynamically enhanced)  
+const getAdminMenuItems = (systemData: any) => [{
   title: "Stock Movement",
   url: "/stock-movement",
   icon: TrendingUp,
   roles: ['admin', 'super_admin'],
-  description: "Track inventory changes"
+  description: "Track inventory changes",
+  badge: systemData?.stockMovements?.todayCount || 0,
+  badgeColor: 'default',
+  subtitle: 'Today\'s movements'
 }, {
   title: "Users",
   url: "/users",
   icon: Users,
   roles: ['admin', 'super_admin'],
-  description: "Manage system users"
+  description: "Manage system users",
+  badge: systemData?.users?.activeCount || 0,
+  badgeColor: 'success',
+  subtitle: `${systemData?.users?.onlineCount || 0} online`
 }, {
   title: "Stock Reports",
   url: "/stock-report",
   icon: FileText,
   roles: ['admin', 'super_admin'],
-  description: "Generate inventory reports"
+  description: "Generate inventory reports",
+  badge: systemData?.reports?.pendingCount || 0,
+  badgeColor: systemData?.reports?.failedCount > 0 ? 'destructive' : 'default',
+  subtitle: 'Auto-generated'
 }];
 
-// Super Admin navigation items - system management
-const systemMenuItems = [{
+// Super Admin navigation items - system management (will be dynamically enhanced)
+const getSystemMenuItems = (systemData: any) => [{
   title: "API Management",
   url: "/api-management",
   icon: Key,
   roles: ['super_admin'],
-  description: "Manage API keys and integrations"
+  description: "Manage API keys and integrations",
+  badge: systemData?.apiManagement?.activeKeys || 0,
+  badgeColor: systemData?.apiManagement?.errorRate > 5 ? 'destructive' : 'success',
+  subtitle: `${systemData?.apiManagement?.totalRequests || 0} requests`
 }, {
   title: "Security Center",
   url: "/security",
   icon: Shield,
   roles: ['super_admin'],
-  description: "Security monitoring & audit logs"
+  description: "Security monitoring & audit logs",
+  badge: systemData?.security?.alerts || 0,
+  badgeColor: systemData?.security?.threats > 0 ? 'destructive' : systemData?.security?.alerts > 0 ? 'warning' : 'success',
+  subtitle: `${systemData?.security?.vulnerabilities || 0} vulnerabilities`
 }, {
   title: "Database Health",
   url: "/database",
   icon: Database,
   roles: ['super_admin'],
-  description: "Database performance monitoring"
+  description: "Database performance monitoring",
+  badge: `${systemData?.database?.responseTime || 0}ms`,
+  badgeColor: systemData?.database?.status === 'critical' ? 'destructive' : systemData?.database?.status === 'warning' ? 'warning' : 'success',
+  subtitle: `${systemData?.database?.connections || 0} connections`
 }, {
   title: "System Settings",
   url: "/settings",
   icon: Settings,
   roles: ['super_admin'],
-  description: "Global system configuration"
+  description: "Global system configuration",
+  badge: systemData?.settings?.pendingUpdates || 0,
+  badgeColor: systemData?.settings?.maintenanceMode ? 'warning' : systemData?.settings?.backupStatus === 'failed' ? 'destructive' : 'success',
+  subtitle: systemData?.settings?.maintenanceMode ? 'Maintenance Mode' : 'Running'
 }];
 export function AppSidebar() {
   const {
@@ -98,6 +120,9 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const [showAddProduct, setShowAddProduct] = useState(false);
+  
+  // Get real-time system data
+  const { data: systemData, isLoading: systemLoading } = useSystemMenuData();
   const quickActions = [{
     title: 'Add Product',
     icon: Plus,
@@ -105,7 +130,9 @@ export function AppSidebar() {
     action: () => setShowAddProduct(true)
   }];
   const filteredMainItems = mainMenuItems.filter(item => item.roles.includes(user?.role || 'user'));
+  const adminMenuItems = getAdminMenuItems(systemData);
   const filteredAdminItems = adminMenuItems.filter(item => item.roles.includes(user?.role || 'user'));
+  const systemMenuItems = getSystemMenuItems(systemData);
   const filteredSystemItems = systemMenuItems.filter(item => item.roles.includes(user?.role || 'user'));
   const filteredQuickActions = quickActions.filter(action => action.roles.includes(user?.role || 'user'));
   const getRoleBadgeColor = (role: string) => {
@@ -219,9 +246,28 @@ export function AppSidebar() {
                         duration: 0.3,
                         delay: (filteredMainItems.length + index) * 0.05
                       }}>
-                            <NavLink to={item.url} className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-medium' : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'}`}>
+                            <NavLink to={item.url} className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-medium' : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'} relative`}>
                               <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-accent-foreground' : 'group-hover:text-sidebar-primary'}`} />
-                              {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
+                              {!collapsed && (
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">{item.title}</span>
+                                    {item.badge !== undefined && (
+                                      <Badge 
+                                        variant={item.badgeColor as any} 
+                                        className="text-xs px-1.5 py-0.5 h-auto min-w-0"
+                                      >
+                                        {item.badge}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-sidebar-foreground/50 mt-0.5">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                               {isActive && !collapsed && <motion.div className="ml-auto w-2 h-2 bg-sidebar-accent-foreground rounded-full" layoutId="activeIndicator" initial={{
                             scale: 0
                           }} animate={{
@@ -264,9 +310,28 @@ export function AppSidebar() {
                         duration: 0.3,
                         delay: (filteredMainItems.length + filteredAdminItems.length + index) * 0.05
                       }}>
-                            <NavLink to={item.url} className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-medium' : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'}`}>
+                            <NavLink to={item.url} className={`flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 group ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-medium' : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'} relative`}>
                               <Icon className={`w-5 h-5 ${isActive ? 'text-sidebar-accent-foreground' : 'group-hover:text-sidebar-primary'}`} />
-                              {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
+                              {!collapsed && (
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-sm">{item.title}</span>
+                                    {item.badge && (
+                                      <Badge 
+                                        variant={item.badgeColor as any} 
+                                        className="text-xs px-1.5 py-0.5 h-auto min-w-0"
+                                      >
+                                        {item.badge}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-sidebar-foreground/50 mt-0.5">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
                               {isActive && !collapsed && <motion.div className="ml-auto w-2 h-2 bg-sidebar-accent-foreground rounded-full" layoutId="activeIndicator" initial={{
                             scale: 0
                           }} animate={{
